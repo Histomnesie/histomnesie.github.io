@@ -1,123 +1,59 @@
-import {questionPatterns} from './question_patterns.js';
+import {Question} from './question.js';
 
 const quizId = new URLSearchParams(document.location.search).get('id');
 
 $(document).ready(() => {
     $.when(
-        $.getJSON('/quizzes/quizzes.json'),
-        $.getJSON(`/quizzes/${quizId}.json`),
-    ).done((quizzeslist_, quiz_, layouts_) => {
-        quiz = quiz_[0];
-        initQuiz();
-    }).fail(() => {
-        alert("Ce quiz n'existe pas (＞﹏＜)");
+        $.getJSON('/quiz/data/quizzes.json'),
+        $.getJSON(`/quiz/data/${quizId}.json`),
+    )
+    .done(initQuiz)
+    .fail(e => {
+        alert(`${e.status}\nCe quiz n'existe pas (＞﹏＜)`);
         document.location.href = '/';
     })
 });
 
-let $prompt, $responseArea;
-let quiz, question, thisPattern;
+let $form, $prompt, $responseArea;
+let quiz, question;
 
-let currentQuestion = 0;
+function initQuiz(quizzesList_, quiz_) {
+    quiz = quiz_[0];
+    quiz.questions = quiz.questions.map(q => new Question(q));
 
-function initQuiz() {
-    $prompt = $('.quiz-form .prompt')
-    $responseArea = $('.quiz-form .response-area')
-
-    $('.quiz-form').on('submit', handleFormSubmission);
-
-    chooseQuestion();
+    main();
 }
 
-function chooseQuestion() {
-    if (currentQuestion >= quiz.questions.length) {
-        alert('End');
-        document.location.href = '/';
-    }
-
-    displayQuestion(currentQuestion++);
-}
-
-function displayQuestion(index) {
-    question = quiz.questions[index];
-    thisPattern = questionPatterns[question.type];
-    question.answer = thisPattern.unpack(question.answer);
-
-    $prompt.text(question.prompt);
-    $responseArea.empty();
-
-    let isFirstInput = true;
-    forLayout(
-        text => {
-            $responseArea.append(text);
-        },
-        (name, attrs) => {
-            let $input = $('<input>', attrs);
-            $input.attr('name', name);
-            $input.attr('required', true);
-            $responseArea.append($input);
-            if (isFirstInput) {
-                $input.focus();
-                isFirstInput = false;
-            }
-        }
-    )
-}
-
-function forLayout(onText, onField) {
-    thisPattern.layout.split(/({[^}]+})/g).forEach(item => {
-        if (item != '') {
-            if (item.startsWith('{') && item.endsWith('}')) {
-                let name = item.slice(1, -1)
-                onField(name, thisPattern.fields[name]);
-            } else {
-                onText(item);
-            }
-        }
+async function waitForEvent($element, eventType) {
+    return new Promise(resolve => {
+        $element.one(eventType, e => {
+            e.preventDefault();
+            resolve();
+        });
     });
 }
 
-function handleFormSubmission(e) {
-    e.preventDefault();
-    
-    let form = $(this)[0];
+async function main() {
+    $form = $('.quiz-form');
+    $prompt = $('.quiz-form .prompt');
+    $responseArea = $('.quiz-form .response-area');
 
-    let correct = thisPattern.checkAnswer(form, question.answer);
-    // for (const key in question.answer) {
-    //     console.log(form[key].value,  question.answer[key]);
-    //     if (form[key].value != question.answer[key]) {
-    //         correct = false;
-    //         break;
-    //     }
-    // }
+    for (let currentQuestion = 3; currentQuestion < quiz.questions.length; currentQuestion++) {
+        question = quiz.questions[currentQuestion];
+        
+        $responseArea.empty();
+        let prompt = question.pattern?.build($responseArea);
+        $prompt.text(prompt === undefined ? question.prompt : prompt);
+        $responseArea.find('input').first().focus();
 
-    if (!correct) {
-        showCorrection(form);
+        await waitForEvent($form, 'submit');
+
+        if (question.pattern?.check($form[0], question.answer)) {}
+        else {
+            question.pattern?.correct(question.answer);
+        }
     }
 
-    chooseQuestion();
-}
-
-function showCorrection(form) {
-    let submission = [];
-    forLayout(
-        text => {
-            submission.push(text);
-        },
-        (name, attrs) => {
-            submission.push(form[name].value);
-        }
-    );
-
-    let correction = [];
-    forLayout(
-        text => {
-            correction.push(text);
-        },
-        (name, attrs) => {
-            correction.push(question.answer[name]);
-        }
-    );
-
-    alert(`~${submission.join('')}~\n${correction.join('')}`);
+    alert('end');
+    document.location.href = '/';
 }

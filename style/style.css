@@ -1,3 +1,11 @@
 body {
     font-family: Arial, Helvetica, sans-serif;
 }
+
+select:invalid {
+    color: #757575;
+}
+
+option {
+    color: black;
+}
