@@ -18,7 +18,32 @@
         {
             "prompt": "Prise de la Bastille",
             "type": "date",
-            "answer": "1789_7_14"
+            "answer": "1789-07-14"
+        },
+        {
+            "prompt": "éclaration des Droits de l'Homme et du Citoyen (DDHC)",
+            "type": "month",
+            "answer": "1789-08"
+        },
+        {
+            "prompt": "Mise en circulation de l'euro €",
+            "type": "year",
+            "answer": "2002"
+        },
+        {
+            "prompt": "Déclaration de guerre de la France et du Royaume-Uni contre l'Allemagne 2GM",
+            "type": "datePeriod",
+            "answer": "1939-09-01/1945-09-02"
+        },
+        {
+            "prompt": "Invasion de la France par Hitler",
+            "type": "monthPeriod",
+            "answer": "1940-05/06"
+        },
+        {
+            "prompt": "Première Guerre Mondiale",
+            "type": "yearPeriod",
+            "answer": "1914/1918"
         }
     ]
 }

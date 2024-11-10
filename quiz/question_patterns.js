@@ -1,114 +1,328 @@
-let unpackedAnswer;
+import * as layout from '/layout.js';
 
-const months = [null,'Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+//ISO 8601
 
-class BasePattern {
-    static build(parent) {}
-    static check(form, answer) {return true;}
-    static correct(answer) {}
+class BaseQPattern {
+    static init(question) {}
+    static build(question, parent) {return question.prompt;}
+    static check(question, form) {return true;}
+    static correct(question) {}
 }
 
-class IntegerPattern  extends BasePattern {
-    static build(parent) {
-        parent.append($('<input>',{
+
+class IntegerQPattern  extends BaseQPattern { // n
+    static build(question, parent) {
+        parent.append(layout.input({
             name:'integer',
             type:'number',
-            required:true,
             placeholder:'nombre'
         }));
+        return question.prompt;
     }
 
-    static check(form, answer) {
-        return Number(form.integer.value) === answer;
+    static check(question, form) {
+        return Number(form.integer.value) === question.answer;
     }
 
-    static correct(answer) {
-        alert(answer);
+    static correct(question) {
+        alert(question.answer);
     }
 }
 
-class DecimalPattern  extends BasePattern {
-    static build(parent) {
-        parent.append($('<input>',{
+class DecimalQPattern  extends BaseQPattern { // n
+    static build(question, parent) {
+        parent.append(layout.input({
             name:'decimal',
             type:'number',
-            required:true,
             placeholder:'nombre décimal',
             step:'any'
         }));
+        return question.prompt;
     }
 
-    static check(form, answer) {
-        return Number(form.decimal.value) === answer;
+    static check(question, form) {
+        return Number(form.decimal.value) === question.answer;
     }
 
-    static correct(answer) {
-        alert(answer);
+    static correct(question) {
+        alert(question.answer);
     }
 }
 
-class TextPattern  extends BasePattern {
-    static build(parent) {
-        parent.append($('<input>',{
+class TextQPattern  extends BaseQPattern { // "..."
+    static build(question, parent) {
+        parent.append(layout.input({
             name:'text',
             type:'text',
-            required:true,
             placeholder:'texte'
         }));
+        return question.prompt;
     }
 
-    static check(form, answer) {
-        return form.text.value.trim().toLowerCase() === answer.toLowerCase();
+    static check(question, form) {
+        return form.text.value.trim().toLowerCase() === question.answer.toLowerCase();
     }
 
-    static correct(answer) {
-        alert(answer);
+    static correct(question) {
+        alert(question.answer);
     }
 }
 
-class DatePattern  extends BasePattern {
-    static build(parent) {
-        parent.append($('<input>',{
+
+class DateQPattern  extends BaseQPattern { // "(-)yyyy-MM-dd"
+    static init(question) {
+        let match = question.answer.match(/^(-?\d{4,})-(\d{2})-(\d{2})$/);
+        question.answer = {
+            year: Number(match[1]),
+            month: Number(match[2]),
+            day: Number(match[3])
+        };
+    }
+
+    static build(question, parent) {
+        parent.append(layout.input({
             name:'day',
             type:'number',
-            required:true,
+            placeholder:'jour',
+            min:1, max:31
+        }));
+        parent.append(layout.monthSelect('month'));
+        parent.append(layout.input({
+            name:'year',
+            type:'number',
+            placeholder:'année'
+        }));
+        return question.prompt;
+    }
+
+    static check(question, form) {
+        return (
+            Number(form.year.value) === question.answer.year &&
+            Number(form.month.value) === question.answer.month &&
+            Number(form.day.value) === question.answer.day
+        );
+    }
+
+    static correct(question) {
+        alert(`${question.answer.day} ${layout.months[question.answer.month]} ${question.answer.year}`);
+    }
+}
+
+class MonthQPattern  extends BaseQPattern { // "(-)yyyy-MM"
+    static init(question) {
+        let match = question.answer.match(/^(-?\d{4,})-(\d{2})$/);
+        question.answer = {
+            year: Number(match[1]),
+            month: Number(match[2])
+        };
+    }
+
+    static build(question, parent) {
+        parent.append(layout.monthSelect('month'));
+        parent.append(layout.input({
+            name:'year',
+            type:'number',
+            placeholder:'année'
+        }));
+        return question.prompt;
+    }
+
+    static check(question, form) {
+        return (
+            Number(form.year.value) === question.answer.year &&
+            Number(form.month.value) === question.answer.month
+        );
+    }
+
+    static correct(question) {
+        alert(`${layout.months[question.answer.month]} ${question.answer.year} `);
+    }
+}
+
+class YearQPattern  extends BaseQPattern { // "(-)yyyy"
+    static init(question) {
+        question.answer = {year: Number(question.answer)};
+    }
+
+    static build(question, parent) {
+        parent.append(layout.input({
+            name:'year',
+            type:'number',
+            placeholder:'année'
+        }));
+        return question.prompt;
+    }
+
+    static check(question, form) {
+        return Number(form.year.value) === question.answer.year;
+    }
+
+    static correct(question) {
+        alert(question.answer.year);
+    }
+}
+
+class DatePeriodQPattern  extends BaseQPattern { // "(-)yyyy-MM-dd/(-)yyyy-MM-dd"
+    static init(question) {
+        let match = question.answer.match(/^(-?\d{4,})-(\d{2})-(\d{2})\/(-?\d{4,})-(\d{2})-(\d{2})$/);
+        question.answer = {
+            startYear: Number(match[1]),
+            startMonth: Number(match[2]),
+            startDay: Number(match[3]),
+            endYear: Number(match[4]),
+            endMonth: Number(match[5]),
+            endDay: Number(match[6])
+        };
+    }
+
+    static build(question, parent) {
+        parent.append($('<span></span>').text('du'));
+
+        parent.append(layout.input({
+            name:'startDay',
+            type:'number',
             placeholder:'jour',
             min:1, max:31
         }));
 
-        const $select = $('<select></select>',{name:'month', required:true});
-        $select.append($('<option value disabled selected hidden>mois</option>'));
-        for (let i = 1; i <= months.length; i++) {
-            $select.append($('<option></option>',{value:i}).text(months[i]));
-        }
-        parent.append($select);
+        parent.append(layout.monthSelect('startMonth'));
 
-        parent.append($('<input>',{
-            name:'year',
+        parent.append(layout.input({
+            name:'startYear',
             type:'number',
-            required:true,
             placeholder:'année'
         }));
+
+        parent.append($('<span></span>').text('au'));
+
+        parent.append(layout.input({
+            name:'endDay',
+            type:'number',
+            placeholder:'jour',
+            min:1, max:31
+        }));
+
+        parent.append(layout.monthSelect('endMonth'));
+
+        parent.append(layout.input({
+            name:'endYear',
+            type:'number',
+            placeholder:'année'
+        }));
+
+        return question.prompt;
     }
 
-    static check(form, answer) {
-        answer = answer.split('_').map(Number);
-        unpackedAnswer = {year:answer[0], month:answer[1], day:answer[2]};
+    static check(question, form) {
         return (
-            Number(form.year.value) === unpackedAnswer.year &&
-            Number(form.month.value) === unpackedAnswer.month &&
-            Number(form.day.value) === unpackedAnswer.day
+            Number(form.startYear.value) === question.answer.startYear &&
+            Number(form.startMonth.value) === question.answer.startMonth &&
+            Number(form.startDay.value) === question.answer.startDay &&
+            Number(form.endYear.value) === question.answer.endYear &&
+            Number(form.endMonth.value) === question.answer.endMonth &&
+            Number(form.endDay.value) === question.answer.endDay
         );
     }
 
-    static correct(answer) {
-        alert(`${unpackedAnswer.day} ${months[unpackedAnswer.month]} ${unpackedAnswer.year}`);
+    static correct(question) {
+        alert(`du ${question.answer.startDay} ${layout.months[question.answer.startMonth]} ${question.answer.startYear} au ${question.answer.endDay} ${layout.months[question.answer.endMonth]} ${question.answer.endYear}`);
     }
 }
 
-export const questionPatterns = {
-    'integer': IntegerPattern,
-    'decimal': DecimalPattern,
-    'text': TextPattern,
-    'date': DatePattern
+class MonthPeriodQPattern  extends BaseQPattern { // "(-)yyyy-MM/MM"
+    static init(question) {
+        let match = question.answer.match(/^(-?\d{4,})-(\d{2})\/(\d{2})$/);
+        question.answer = {
+            year: Number(match[1]),
+            startMonth: Number(match[2]),
+            endMonth: Number(match[3])
+        };
+    }
+
+    static build(question, parent) {
+        parent.append($('<span></span>').text('de'));
+
+        parent.append(layout.monthSelect('startMonth'));
+
+        parent.append($('<span></span>').text('à'));
+
+        parent.append(layout.monthSelect('endMonth'));
+
+        parent.append(layout.input({
+            name:'year',
+            type:'number',
+            placeholder:'année'
+        }));
+
+        return question.prompt;
+    }
+
+    static check(question, form) {
+        return (
+            Number(form.year.value) === question.answer.year &&
+            Number(form.startMonth.value) === question.answer.startMonth &&
+            Number(form.endMonth.value) === question.answer.endMonth
+        );
+    }
+
+    static correct(question) {
+        alert(`de ${layout.months[question.answer.startMonth]} à ${layout.months[question.answer.endMonth]} ${question.answer.year}`);
+    }
 }
+
+class YearPeriodQPattern  extends BaseQPattern { // "(-)yyyy/(-)yyyy"
+    static init(question) {
+        let match = question.answer.match(/^(-?\d{4,})\/(-?\d{4,})$/);
+        question.answer = {
+            startYear: Number(match[1]),
+            endYear: Number(match[2])
+        };
+    }
+
+    static build(question, parent) {
+        parent.append($('<span></span>').text('de'));
+
+        parent.append(layout.input({
+            name:'startYear',
+            type:'number',
+            placeholder:'année'
+        }));
+
+        parent.append($('<span></span>').text('à'));
+
+        parent.append(layout.input({
+            name:'endYear',
+            type:'number',
+            placeholder:'année'
+        }));
+
+        return question.prompt;
+    }
+
+    static check(question, form) {
+        return (
+            Number(form.startYear.value) === question.answer.startYear &&
+            Number(form.endYear.value) === question.answer.endYear
+        );
+    }
+
+    static correct(question) {
+        alert(`de ${question.answer.startYear} à ${question.answer.endYear}`);
+    }
+}
+
+const questionPatterns = {
+    'integer': IntegerQPattern,
+    'decimal': DecimalQPattern,
+    'text': TextQPattern,
+    'date': DateQPattern,
+    'month': MonthQPattern,
+    'year': YearQPattern,
+    'datePeriod': DatePeriodQPattern,
+    'monthPeriod': MonthPeriodQPattern,
+    'yearPeriod': YearPeriodQPattern
+};
+
+export function getPattern(type) {
+    return questionPatterns[type] || BaseQPattern;
+};

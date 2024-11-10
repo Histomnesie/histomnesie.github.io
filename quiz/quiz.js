@@ -38,19 +38,21 @@ async function main() {
     $prompt = $('.quiz-form .prompt');
     $responseArea = $('.quiz-form .response-area');
 
-    for (let currentQuestion = 3; currentQuestion < quiz.questions.length; currentQuestion++) {
+    for (let currentQuestion = 0; currentQuestion < quiz.questions.length; currentQuestion++) {
         question = quiz.questions[currentQuestion];
+
+        if (question.type.startsWith('//')) continue;
         
         $responseArea.empty();
-        let prompt = question.pattern?.build($responseArea);
-        $prompt.text(prompt === undefined ? question.prompt : prompt);
-        $responseArea.find('input').first().focus();
+        let prompt = question.pattern.build(question, $responseArea);
+        $prompt.text(prompt);
+        $responseArea.find('input, select').first().focus();
 
         await waitForEvent($form, 'submit');
 
-        if (question.pattern?.check($form[0], question.answer)) {}
+        if (question.pattern.check(question, $form[0])) {}
         else {
-            question.pattern?.correct(question.answer);
+            question.pattern.correct(question);
         }
     }
 
